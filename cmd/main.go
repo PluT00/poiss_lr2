@@ -9,14 +9,13 @@ import (
 	"os/exec"
 )
 
-func setupQoS(interfaceName string) error {
+func applyQoS(trafficType, srcIP, interfaceName string) error {
+	exec.Command("tc", "qdisc", "del", "dev", interfaceName, "root").Run()
+
 	if err := exec.Command("tc", "qdisc", "add", "dev", interfaceName, "root", "handle", "1:", "htb", "default", "30").Run(); err != nil {
 		return fmt.Errorf("qdisc add failed: %v", err)
 	}
-	return nil
-}
 
-func applyQoS(trafficType, srcIP, interfaceName string) error {
 	switch trafficType {
 	case "Voice":
 		// Голос: 100 Кбит/с, высокий приоритет
@@ -83,10 +82,6 @@ func main() {
 		log.Fatal("Error opening interface:", err)
 	}
 	defer handle.Close()
-
-	if err := setupQoS("r2-eth1"); err != nil {
-		log.Fatal("QoS setup failed:", err)
-	}
 
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 	log.Println("Starting traffic capture on r2-eth1...")
