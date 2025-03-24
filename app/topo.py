@@ -1,5 +1,4 @@
 from mininet.topo import Topo
-from mininet.node import OVSSwitch
 
 class MyTopo(Topo):
     def build(self):
@@ -7,8 +6,8 @@ class MyTopo(Topo):
         h2 = self.addHost('h2')
         h3 = self.addHost('h3')
         s1 = self.addHost('s1')
-        r1 = self.addSwitch('r1', cls=OVSSwitch)
-        r2 = self.addSwitch('r2', cls=OVSSwitch)
+        r1 = self.addSwitch('r1')
+        r2 = self.addSwitch('r2')
 
         self.addLink(h1, r1)
         self.addLink(h2, r1)
