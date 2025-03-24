@@ -1,0 +1,11 @@
+services:
+  mininet:
+    image: ubuntu:20.04
+    container_name: mininet
+    privileged: true
+    network_mode: host
+    tty: true
+    stdin_open: true
+    volumes:
+      - ./app:/app
+    command: /bin/bash -c "apt-get update && apt-get install -y mininet iperf iproute2 net-tools python3 tcpdump && tail -f /dev/null"
