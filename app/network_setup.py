@@ -47,8 +47,8 @@ def setup_network():
     net['s1'].cmd('ifconfig s1-eth0 10.0.3.2/24 up')
 
     # Настройка маршрутов
-    net['h1'].cmd('ip route add default via 10.0.1.254')
-    net['h2'].cmd('ip route add default via 10.0.1.253')
+    net['h1'].cmd('ip route add default via 10.0.1.253')
+    net['h2'].cmd('ip route add default via 10.0.1.254')
     net['h3'].cmd('ip route add default via 10.0.3.253')
     net['s1'].cmd('ip route add default via 10.0.3.254')
     net['r1'].cmd('ip route add 10.0.3.0/24 via 10.0.2.2')
