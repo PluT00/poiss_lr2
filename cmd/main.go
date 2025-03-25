@@ -9,16 +9,16 @@ import (
 	"os/exec"
 )
 
-func applyQoS(trafficType, srcIP, interfaceName string) error {
-	exec.Command("tc", "qdisc", "del", "dev", interfaceName, "root").Run()
-
+func setupQoS(interfaceName string) error {
 	if err := exec.Command("tc", "qdisc", "add", "dev", interfaceName, "root", "handle", "1:", "htb", "default", "30").Run(); err != nil {
 		return fmt.Errorf("qdisc add failed: %v", err)
 	}
+	return nil
+}
 
+func applyQoS(trafficType, srcIP, interfaceName string) error {
 	switch trafficType {
 	case "Voice":
-		// Голос: 100 Кбит/с, высокий приоритет
 		if err := exec.Command("tc", "class", "add", "dev", interfaceName, "parent", "1:", "classid", "1:1", "htb", "rate", "100kbit", "burst", "10kb").Run(); err != nil {
 			log.Printf("Class add for Voice already exists or failed: %v", err)
 		}
@@ -27,7 +27,6 @@ func applyQoS(trafficType, srcIP, interfaceName string) error {
 		}
 		log.Printf("Applied QoS for Voice from %s on %s", srcIP, interfaceName)
 	case "Video":
-		// Видео: 1 Мбит/с, средний приоритет
 		if err := exec.Command("tc", "class", "add", "dev", interfaceName, "parent", "1:", "classid", "1:2", "htb", "rate", "1mbit", "burst", "20kb").Run(); err != nil {
 			log.Printf("Class add for Video already exists or failed: %v", err)
 		}
@@ -36,7 +35,6 @@ func applyQoS(trafficType, srcIP, interfaceName string) error {
 		}
 		log.Printf("Applied QoS for Video from %s on %s", srcIP, interfaceName)
 	case "Data":
-		// Данные: 500 Кбит/с, низкий приоритет
 		if err := exec.Command("tc", "class", "add", "dev", interfaceName, "parent", "1:", "classid", "1:3", "htb", "rate", "500kbit", "burst", "15kb").Run(); err != nil {
 			log.Printf("Class add for Data already exists or failed: %v", err)
 		}
@@ -53,24 +51,27 @@ func classifyTraffic(packet gopacket.Packet) {
 		ip, _ := ipLayer.(*layers.IPv4)
 		srcIP := ip.SrcIP.String()
 
-		if transportLayer := packet.Layer(layers.LayerTypeUDP); transportLayer != nil {
-			udp, _ := transportLayer.(*layers.UDP)
-			srcPort := udp.SrcPort
-			dstPort := udp.DstPort
-
-			switch {
-			case srcPort.String() == "5060" || dstPort.String() == "5060":
-				if err := applyQoS("Voice", srcIP, "r2-eth1"); err != nil {
-					log.Printf("QoS error for Voice: %v", err)
+		if transportLayer := packet.TransportLayer(); transportLayer != nil {
+			switch t := transportLayer.(type) {
+			case *layers.UDP:
+				srcPort := t.SrcPort
+				dstPort := t.DstPort
+				switch {
+				case srcPort == 5060 || dstPort == 5060:
+					if err := applyQoS("Voice", srcIP, "r2-eth1"); err != nil {
+						log.Printf("QoS error for Voice: %v", err)
+					}
+				case srcPort == 1935 || dstPort == 1935:
+					if err := applyQoS("Video", srcIP, "r2-eth1"); err != nil {
+						log.Printf("QoS error for Video: %v", err)
+					}
+				case srcPort == 80 || dstPort == 80:
+					if err := applyQoS("Data", srcIP, "r2-eth1"); err != nil {
+						log.Printf("QoS error for Data: %v", err)
+					}
 				}
-			case srcPort.String() == "1935" || dstPort.String() == "1935":
-				if err := applyQoS("Video", srcIP, "r2-eth1"); err != nil {
-					log.Printf("QoS error for Video: %v", err)
-				}
-			case srcPort.String() == "80" || dstPort.String() == "80":
-				if err := applyQoS("Data", srcIP, "r2-eth1"); err != nil {
-					log.Printf("QoS error for Data: %v", err)
-				}
+			default:
+				return
 			}
 		}
 	}
@@ -82,6 +83,10 @@ func main() {
 		log.Fatal("Error opening interface:", err)
 	}
 	defer handle.Close()
+
+	if err := setupQoS("r2-eth1"); err != nil {
+		log.Fatal("QoS setup failed:", err)
+	}
 
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 	log.Println("Starting traffic capture on r2-eth1...")
