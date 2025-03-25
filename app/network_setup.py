@@ -37,8 +37,10 @@ def setup_network():
     net['h1'].cmd('ifconfig h1-eth0 10.0.1.1/24 up')
     net['h2'].cmd('ifconfig h2-eth0 10.0.1.2/24 up')
     net['r1'].cmd('ifconfig r1-eth0 10.0.1.254/24 up')
+    net['r1'].cmd('ifconfig r1-eth1 10.0.1.254/24 up')  # Same IP for h2
     net['r1'].cmd('ifconfig r1-eth2 10.0.2.1/24 up')
     net['r2'].cmd('ifconfig r2-eth0 10.0.2.2/24 up')
+    net['r2'].cmd('ifconfig r2-eth1 10.0.3.254/24 up')  # Same IP for h3
     net['r2'].cmd('ifconfig r2-eth2 10.0.3.254/24 up')
     net['h3'].cmd('ifconfig h3-eth0 10.0.3.1/24 up')
     net['s1'].cmd('ifconfig s1-eth0 10.0.3.2/24 up')
@@ -66,14 +68,6 @@ def setup_network():
     print(net['r2'].cmd('ping -c 4 10.0.3.2'))
     print("h1 -> s1:")
     print(net['h1'].cmd('ping -c 4 10.0.3.2'))
-
-    # Print routing tables for debugging
-    print("h1 ip route:")
-    print(net['h1'].cmd('ip route'))
-    print("h2 ip route:")
-    print(net['h2'].cmd('ip route'))
-    print("h3 ip route:")
-    print(net['h3'].cmd('ip route'))
 
     CLI(net)
     net.stop()
