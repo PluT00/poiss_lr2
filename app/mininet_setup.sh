@@ -13,7 +13,3 @@ h3 ip route add default via 10.0.3.254
 s1 ip route add default via 10.0.3.254
 r1 ip route add 10.0.3.0/24 via 10.0.2.2
 r2 ip route add 10.0.1.0/24 via 10.0.2.1
-
-# После настройки
-
-h1 ping 10.0.3.2
