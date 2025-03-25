@@ -1,3 +1,4 @@
+#!/bin/bash
 mn --custom topo.py --topo mytopo
 h1 ifconfig h1-eth0 10.0.1.1/24 up
 h2 ifconfig h2-eth0 10.0.1.2/24 up
